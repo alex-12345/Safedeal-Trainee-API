@@ -1,0 +1,99 @@
+version: '3.0'
+services:
+  mock-server:
+    image: mockserver/mockserver:mockserver-5.11.1
+    ports:
+    - "1080:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
+    volumes:
+      - "./initializerJson.json:/config/initializerJson.json"
+  migrations-and-fixtures:
+    depends_on:
+      - postgres
+    build:
+      context: docker/php-cli
+      args:
+        PHP_VERSION: "$PHP_VERSION"
+    env_file: .env
+    working_dir: "$APP_SOURCE_ROOT"
+    volumes:
+      - "./:$APP_SOURCE_ROOT"
+    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && bin/console doctrine:migrations:migrate -n && bin/console doctrine:fixtures:load -n\""
+#  phpunit:
+#    depends_on:
+#      - postgres
+#      - redis
+#      - mock-server
+#    build:
+#      context: docker/php-cli
+#      args:
+#        PHP_VERSION: "$PHP_VERSION"
+#    env_file: .env
+#    working_dir: "$APP_SOURCE_ROOT"
+#    volumes:
+#      - "./:$APP_SOURCE_ROOT"
+#    command: "bin/phpunit"
+  composer:
+    env_file: .env
+    network_mode: "host"
+    image: "composer:$COMPOSER_VERSION"
+    working_dir: "$APP_SOURCE_ROOT"
+    environment:
+      COMPOSER_HOME: "$COMPOSER_HOME"
+      COMPOSER_CACHE_DIR: "$COMPOSER_CACHE_DIR"
+    volumes:
+      - "$COMPOSER_HOME:$COMPOSER_HOME"
+      - "$COMPOSER_CACHE_DIR:$COMPOSER_CACHE_DIR"
+      - "./:$APP_SOURCE_ROOT"
+    command: "bash -c \"composer install && bin/phpunit --version && composer OA\""
+  redis:
+    env_file: .env
+    image: "redis:${REDIS_VERSION}-alpine"
+    ports:
+      - "6379:6379"
+    volumes:
+      - "./redis-data:/data"
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
+  postgres:
+    env_file: .env
+    image: "postgres:${POSTGRES_VERSION}"
+    ports:
+      - "5432:5432"
+    volumes:
+      - "postgres-data:/var/lib/postgresql/data"
+  php-fpm:
+    env_file: .env
+    build:
+      context: ./docker/php-fpm
+      args:
+        PHP_VERSION: "$PHP_VERSION"
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "9000:9000"
+    volumes:
+      - "./:$APP_SOURCE_ROOT"
+  nginx:
+    image: "nginx:$NGINX_VERSION-alpine"
+    env_file: .env
+    ports:
+      - "80:80"
+    volumes:
+      - "./:$APP_SOURCE_ROOT"
+      - "./docker/nginx/nginx.conf:/etc/nginx/nginx.conf"
+      - "./docker/nginx/sites-enabled/safedeal.localhost.conf:/etc/nginx/sites-enabled/safedeal.localhost.conf"
+    depends_on:
+      - php-fpm
+  swagger:
+    image: swaggerapi/swagger-ui
+    ports:
+      - "8080:8080"
+    volumes:
+    - "./public/swagger/swagger.json:/config/swagger.json"
+    environment:
+      SWAGGER_JSON: "/config/swagger.json"
+
+volumes:
+  postgres-data:

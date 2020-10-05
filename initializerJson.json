@@ -1,0 +1,124 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/products/products",
+      "queryStringParameters": {
+        "ids": [
+          "1,4"
+        ],
+        "params": [
+          "id,price,weight"
+        ]
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "type": "JSON",
+        "json": [
+          {
+            "id": 1,
+            "weight": 10,
+            "price": 600
+          },
+          {
+            "id": 4,
+            "weight": 2,
+            "price": 1800
+          }
+        ]
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/logistic/routes/delivery",
+      "queryStringParameters": {
+        "params": [
+          "route_hash,departure_point,route_length"
+        ]
+      },
+      "body": {
+        "type": "JSON",
+        "json": {
+          "destination": "destination place",
+          "products": [
+            {
+              "id": 1,
+              "amount": 5
+            },
+            {
+              "id": 4,
+              "amount": 2
+            }
+          ]
+        }
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "type": "JSON",
+        "json": {
+          "route_hash": "08ca6a0b-1848-4e80-a202-87afd9f23514",
+          "route_length": 300,
+          "departure_point": "departure 13"
+        }
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/logistic/routes/delivery",
+      "queryStringParameters": {
+        "params": [
+          "route_hash,departure_point,route_length"
+        ]
+      },
+      "body": {
+        "type": "JSON",
+        "json": {
+          "destination": "destination place",
+          "products": [
+            {
+              "id": 1,
+              "amount": 5
+            },
+            {
+              "id": 4,
+              "amount": 2
+            }
+          ]
+        }
+      }
+    },
+    "httpResponse": {
+      "body": {
+        "type": "JSON",
+        "json": {
+          "route_hash": "08ca6a0b-1848-4e80-a202-87afd9f23514",
+          "route_length": 300,
+          "departure_point": "departure 13"
+        }
+      },
+      "statusCode": 200
+    }
+  },
+  {
+    "httpRequest": {},
+    "httpResponse": {
+      "body": {
+        "type": "JSON",
+        "json": {
+          "error": 404,
+          "message": "content not found"
+        }
+      },
+      "statusCode": 404
+    },
+    "priority": -10
+  }
+]

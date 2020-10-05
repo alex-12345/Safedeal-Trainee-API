@@ -1,31 +1,50 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
-
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices/configuration.html#application-related-configuration
 parameters:
+    app_env: '%env(resolve:APP_ENV)%'
+    rpm: '%env(resolve:RPM)%'
+    products_service_url: '%env(resolve:PRODUCTS_API_URL)%'
+    logistic_service_url: '%env(resolve:LOGISTIC_API_URL)%'
 
 services:
-    # default configuration for services in *this* file
     _defaults:
-        autowire: true      # Automatically injects dependencies in your services.
-        autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
+        autowire: true
+        autoconfigure: true
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
+
+    data_time_normalizer:
+        class: Symfony\Component\Serializer\Normalizer\DateTimeNormalizer
+        tags: [ serializer.normalizer ]
+
+    App\DataFixtures\:
+        resource: '../src/DataFixtures/'
+        tags: [ 'doctrine.fixture.orm' ]
+
     App\:
         resource: '../src/'
         exclude:
+            - '../src/ArgumentResolver/'
             - '../src/DependencyInjection/'
             - '../src/Entity/'
+            - '../src/DTO/'
+            - '../src/DataFixtures'
             - '../src/Kernel.php'
             - '../src/Tests/'
-
-    # controllers are imported separately to make sure services can be injected
-    # as action arguments even if you don't extend any base controller class
     App\Controller\:
         resource: '../src/Controller/'
         tags: ['controller.service_arguments']
 
-    # add more service definitions when explicit configuration is needed
-    # please note that last definitions always *replace* previous ones
+    App\Utils\RateLimiter:
+        arguments:
+            $rpm: '%rpm%'
+            $appEnv: '%app_env%'
+    App\ArgumentResolver\RequestDataResolver:
+        tags:
+            - { name: controller.argument_value_resolver, priority: 50 }
+
+    App\APIHelper\ProductsAPIHelper:
+        arguments:
+            $apiUrl: '%products_service_url%'
+    App\APIHelper\LogisticAPIHelper:
+        arguments:
+            $apiUrl: '%logistic_service_url%'
+
+

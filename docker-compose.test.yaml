@@ -1,0 +1,48 @@
+version: '3.0'
+services:
+  mock-server-test:
+    image: mockserver/mockserver:mockserver-5.11.1
+    ports:
+      - "1090:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
+    volumes:
+      - "./initializerJson.json:/config/initializerJson.json"
+  redis-test:
+    env_file: .env.test
+    image: "redis:${REDIS_VERSION}-alpine"
+    ports:
+      - "6380:6379"
+    command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
+  postgres-test:
+    env_file: .env.test
+    image: "postgres:${POSTGRES_VERSION}"
+    ports:
+      - "5433:5432"
+  migrations-and-fixtures:
+    depends_on:
+      - postgres-test
+    build:
+      context: docker/php-cli
+      args:
+        PHP_VERSION: "$PHP_VERSION"
+    env_file: .env.test
+    working_dir: "$APP_SOURCE_ROOT"
+    volumes:
+      - "./:$APP_SOURCE_ROOT"
+    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && bin/console doctrine:migrations:migrate -n && bin/console doctrine:fixtures:load -n\""
+  phpunit:
+    depends_on:
+      - postgres-test
+      - redis-test
+      - mock-server-test
+    build:
+      context: docker/php-cli
+      args:
+        PHP_VERSION: "$PHP_VERSION"
+    env_file: .env.test
+    working_dir: "$APP_SOURCE_ROOT"
+    volumes:
+      - "./:$APP_SOURCE_ROOT"
+    command: "bin/phpunit"
+
