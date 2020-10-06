@@ -3,12 +3,13 @@ services:
   mock-server:
     image: mockserver/mockserver:mockserver-5.11.1
     ports:
-    - "1080:1080"
+      - "1080:1080"
     environment:
       MOCKSERVER_INITIALIZATION_JSON_PATH: /config/initializerJson.json
     volumes:
       - "./initializerJson.json:/config/initializerJson.json"
   migrations-and-fixtures:
+    user: "$_UID:$_GID"
     depends_on:
       - postgres
     build:
@@ -19,24 +20,11 @@ services:
     working_dir: "$APP_SOURCE_ROOT"
     volumes:
       - "./:$APP_SOURCE_ROOT"
-    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && bin/console doctrine:migrations:migrate -n && bin/console doctrine:fixtures:load -n\""
-#  phpunit:
-#    depends_on:
-#      - postgres
-#      - redis
-#      - mock-server
-#    build:
-#      context: docker/php-cli
-#      args:
-#        PHP_VERSION: "$PHP_VERSION"
-#    env_file: .env
-#    working_dir: "$APP_SOURCE_ROOT"
-#    volumes:
-#      - "./:$APP_SOURCE_ROOT"
-#    command: "bin/phpunit"
+    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && php bin/console doctrine:migrations:migrate -n && php bin/console doctrine:fixtures:load -n\""
   composer:
     env_file: .env
     network_mode: "host"
+    user: "$_UID:$_GID"
     image: "composer:$COMPOSER_VERSION"
     working_dir: "$APP_SOURCE_ROOT"
     environment:
@@ -46,14 +34,14 @@ services:
       - "$COMPOSER_HOME:$COMPOSER_HOME"
       - "$COMPOSER_CACHE_DIR:$COMPOSER_CACHE_DIR"
       - "./:$APP_SOURCE_ROOT"
-    command: "bash -c \"composer install && bin/phpunit --version && composer OA\""
+    command: "bash -c \"composer install && php bin/phpunit --version && composer OA\""
   redis:
     env_file: .env
     image: "redis:${REDIS_VERSION}-alpine"
     ports:
       - "6379:6379"
     volumes:
-      - "./redis-data:/data"
+      - "redis-data:/data"
     command: "redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}"
   postgres:
     env_file: .env
@@ -64,6 +52,7 @@ services:
       - "postgres-data:/var/lib/postgresql/data"
   php-fpm:
     env_file: .env
+    user: "$_UID:$_GID"
     build:
       context: ./docker/php-fpm
       args:
@@ -71,6 +60,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - mock-server
     ports:
       - "9000:9000"
     volumes:
@@ -91,9 +81,10 @@ services:
     ports:
       - "8080:8080"
     volumes:
-    - "./public/swagger/swagger.json:/config/swagger.json"
+      - "./public/swagger/swagger.json:/config/swagger.json"
     environment:
       SWAGGER_JSON: "/config/swagger.json"
 
 volumes:
   postgres-data:
+  redis-data:

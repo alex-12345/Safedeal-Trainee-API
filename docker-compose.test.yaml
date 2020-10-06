@@ -20,6 +20,7 @@ services:
     ports:
       - "5433:5432"
   migrations-and-fixtures:
+    user: "$_UID:$_GID"
     depends_on:
       - postgres-test
     build:
@@ -30,12 +31,13 @@ services:
     working_dir: "$APP_SOURCE_ROOT"
     volumes:
       - "./:$APP_SOURCE_ROOT"
-    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && bin/console doctrine:migrations:migrate -n && bin/console doctrine:fixtures:load -n\""
+    command: "bash -c \"cd \"${APP_SOURCE_ROOT}\" && php bin/console doctrine:migrations:migrate -n && php bin/console doctrine:fixtures:load -n\""
   phpunit:
     depends_on:
       - postgres-test
       - redis-test
       - mock-server-test
+    user: "$_UID:$_GID"
     build:
       context: docker/php-cli
       args:
@@ -44,5 +46,5 @@ services:
     working_dir: "$APP_SOURCE_ROOT"
     volumes:
       - "./:$APP_SOURCE_ROOT"
-    command: "bin/phpunit"
+    command: "php bin/phpunit"
 
